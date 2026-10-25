@@ -1,0 +1,27 @@
+[package]
+name = "janus-scan-cli"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+description = "Janus Scan command-line tool"
+authors.workspace = true
+repository.workspace = true
+homepage.workspace = true
+publish.workspace = true
+
+[[bin]]
+name = "janus-scan"
+path = "src/main.rs"
+
+[dependencies]
+scan-core.workspace = true
+image.workspace = true
+anyhow.workspace = true
+clap.workspace = true
+
+[target.'cfg(target_os = "macos")'.dependencies]
+backend-ica.workspace = true
+
+[target.'cfg(target_os = "linux")'.dependencies]
+backend-sane.workspace = true

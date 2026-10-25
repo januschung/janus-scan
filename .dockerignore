@@ -1,0 +1,19 @@
+# Docker build context is the repo root; send only what the images copy.
+*
+!scripts/linux-deps.sh
+!docker/setup.sh
+# Server image (deploy/Dockerfile)
+!Cargo.toml
+!Cargo.lock
+!crates/
+!app/
+app/node_modules/
+app/build/
+app/build-web/
+app/src-tauri/target/
+app/src-tauri/gen/
+**/target/
+!deploy/
+deploy/scans/
+deploy/dist/
+deploy/bundle/

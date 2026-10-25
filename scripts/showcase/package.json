@@ -1,0 +1,9 @@
+{
+  "name": "janus-scan-showcase",
+  "private": true,
+  "description": "Sample documents and screen recordings for the README (see README.md here).",
+  "type": "module",
+  "dependencies": {
+    "playwright-core": "1.56.1"
+  }
+}

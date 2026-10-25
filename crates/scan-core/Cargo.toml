@@ -1,0 +1,16 @@
+[package]
+name = "scan-core"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+description = "Scanner model for Janus Scan: devices, capabilities, scan requests, events and errors"
+authors.workspace = true
+repository.workspace = true
+homepage.workspace = true
+publish.workspace = true
+
+[dependencies]
+image.workspace = true
+serde.workspace = true
+thiserror.workspace = true

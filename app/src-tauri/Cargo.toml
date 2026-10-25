@@ -1,0 +1,37 @@
+[package]
+name = "janus-scan-app"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+description = "Janus Scan desktop app for the Brother ADS-1000W"
+authors.workspace = true
+repository.workspace = true
+homepage.workspace = true
+publish.workspace = true
+
+[lib]
+name = "janus_scan_lib"
+crate-type = ["staticlib", "cdylib", "rlib"]
+
+[build-dependencies]
+tauri-build = { version = "2", features = [] }
+
+[dependencies]
+scan-core.workspace = true
+imaging.workspace = true
+export.workspace = true
+document.workspace = true
+image.workspace = true
+serde.workspace = true
+serde_json.workspace = true
+tauri = { version = "2", features = [] }
+tauri-plugin-opener = "2"
+tauri-plugin-dialog = "2"
+base64 = "0.22"
+
+[target.'cfg(target_os = "macos")'.dependencies]
+backend-ica.workspace = true
+
+[target.'cfg(target_os = "linux")'.dependencies]
+backend-sane.workspace = true

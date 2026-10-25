@@ -1,0 +1,14 @@
+Janus Scan Server is starting; it registers the scanner at {{ .Values.scanner.ip }}.
+{{- if .Values.ingress.enabled }}
+
+Open http{{ if .Values.ingress.tls }}s{{ end }}://{{ .Values.ingress.host }} on a phone or computer.
+{{- else }}
+
+Try it from this computer:
+  kubectl -n {{ .Release.Namespace }} port-forward svc/{{ include "janus-scan.fullname" . }} 8080:{{ .Values.service.port }}
+  then open http://localhost:8080
+{{- end }}
+{{- if not .Values.destinations }}
+
+No destinations are set, so the page can only download. Add NAS folders under "destinations".
+{{- end }}

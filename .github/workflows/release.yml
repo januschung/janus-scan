@@ -1,0 +1,187 @@
+# Builds every package and publishes a draft GitHub Release when a version
+# tag is pushed:
+#
+#   git tag v0.1.0 && git push origin v0.1.0
+#
+# The tag must match the version in Cargo.toml and tauri.conf.json. Brother's
+# drivers are never included: users install them from Brother (desktop) or add
+# them to the server image on their own machine (deploy/driver.Dockerfile).
+name: Release
+
+on:
+  push:
+    tags: ["v*"]
+
+permissions:
+  contents: write # create the release
+  packages: write # push the server image to ghcr.io
+
+jobs:
+  version:
+    runs-on: ubuntu-24.04
+    outputs:
+      version: ${{ steps.check.outputs.version }}
+    steps:
+      - uses: actions/checkout@v4
+      - id: check
+        name: Tag matches the app version
+        run: |
+          tag="${GITHUB_REF_NAME#v}"
+          app=$(jq -r .version app/src-tauri/tauri.conf.json)
+          cargo=$(sed -n 's/^version = "\(.*\)"/\1/p' Cargo.toml | head -n1)
+          if [ "$tag" != "$app" ] || [ "$tag" != "$cargo" ]; then
+            echo "::error::Tag $GITHUB_REF_NAME doesn't match the version in tauri.conf.json ($app) and Cargo.toml ($cargo)"
+            exit 1
+          fi
+          echo "version=$tag" >> "$GITHUB_OUTPUT"
+
+  macos:
+    needs: version
+    runs-on: macos-14
+    env:
+      VERSION: ${{ needs.version.outputs.version }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: app/package-lock.json
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: aarch64-apple-darwin,x86_64-apple-darwin
+      - name: Build the disk image (Apple Silicon and Intel; not signed)
+        working-directory: app
+        run: |
+          npm ci --no-audit --no-fund
+          npx tauri build --target universal-apple-darwin --bundles dmg
+      - name: Name it
+        run: |
+          mkdir out
+          cp target/universal-apple-darwin/release/bundle/dmg/*.dmg "out/janus-scan_${VERSION}_universal.dmg"
+      - uses: actions/upload-artifact@v4
+        with:
+          name: macos
+          path: out/*
+
+  linux:
+    needs: version
+    runs-on: ubuntu-24.04
+    env:
+      VERSION: ${{ needs.version.outputs.version }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: app/package-lock.json
+      - uses: dtolnay/rust-toolchain@stable
+      - name: System packages
+        run: sudo sh scripts/linux-deps.sh && sudo apt-get install -y --no-install-recommends file
+      - name: Build the .deb and the AppImage
+        working-directory: app
+        env:
+          # AppImage tools run without FUSE this way.
+          APPIMAGE_EXTRACT_AND_RUN: "1"
+        run: |
+          npm ci --no-audit --no-fund
+          npx tauri build --bundles deb,appimage
+      - name: Name them
+        run: |
+          mkdir out
+          for f in target/release/bundle/deb/*.deb; do
+            cp "$f" "out/$(dpkg-deb -f "$f" Package)_$(dpkg-deb -f "$f" Version)_$(dpkg-deb -f "$f" Architecture).deb"
+          done
+          cp target/release/bundle/appimage/*.AppImage "out/janus-scan_${VERSION}_x86_64.AppImage"
+      - name: Arch package (CachyOS)
+        run: |
+          docker run --rm -v "$PWD/out":/out -v "$PWD/packaging/arch":/pkg:ro \
+            -v "$PWD/LICENSE":/pkg-license/LICENSE:ro archlinux:latest sh /pkg/build.sh
+      - uses: actions/upload-artifact@v4
+        with:
+          name: linux
+          path: out/*
+
+  server:
+    needs: version
+    runs-on: ubuntu-24.04
+    env:
+      VERSION: ${{ needs.version.outputs.version }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: docker/setup-buildx-action@v3
+      - uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+      - id: image
+        name: Image name
+        run: echo "name=ghcr.io/${GITHUB_REPOSITORY_OWNER,,}/janus-scan-server" >> "$GITHUB_OUTPUT"
+      - name: Publish the server image (without Brother's driver)
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          file: deploy/Dockerfile
+          platforms: linux/amd64
+          push: true
+          tags: |
+            ${{ steps.image.outputs.name }}:${{ env.VERSION }}
+            ${{ steps.image.outputs.name }}:latest
+          labels: |
+            org.opencontainers.image.source=https://github.com/${{ github.repository }}
+            org.opencontainers.image.description=Janus Scan Server, without Brother's driver (add it with driver.Dockerfile)
+            org.opencontainers.image.licenses=MIT
+      - name: Docker Compose and Helm files
+        run: |
+          dir="janus-scan-server_${VERSION}"
+          mkdir -p "out/$dir"
+          cp deploy/docker-compose.yml deploy/driver.Dockerfile deploy/server.yaml "out/$dir/"
+          cp -R deploy/helm/janus-scan "out/$dir/helm"
+          # Pin this release's image instead of :latest.
+          sed -i "s|janus-scan-server:latest|janus-scan-server:${VERSION}|" \
+            "out/$dir/docker-compose.yml" "out/$dir/driver.Dockerfile"
+          tar -C out -czf "out/$dir.tar.gz" "$dir"
+          rm -r "out/$dir"
+      - name: LXC files
+        run: |
+          docker buildx build --platform linux/amd64 -f deploy/Dockerfile --target dist \
+            --output type=local,dest=lxc .
+          tar -C lxc -czf "out/janus-scan-lxc_${VERSION}.tar.gz" .
+      - uses: actions/upload-artifact@v4
+        with:
+          name: server
+          path: out/*.tar.gz
+
+  release:
+    needs: [version, macos, linux, server]
+    runs-on: ubuntu-24.04
+    env:
+      VERSION: ${{ needs.version.outputs.version }}
+      GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      GH_REPO: ${{ github.repository }}
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          path: dist
+          merge-multiple: true
+      - name: Checksums
+        working-directory: dist
+        run: sha256sum -- * > SHA256SUMS
+      - name: Draft release (publish it from GitHub after a look)
+        run: |
+          image="ghcr.io/${GITHUB_REPOSITORY_OWNER,,}/janus-scan-server:${VERSION}"
+          cat > notes.md <<EOF
+          Install Brother's driver for the ADS-1000W from [support.brother.com](https://support.brother.com) first (on CachyOS, \`brscan4\` from the AUR). It isn't included in any download here.
+
+          | Download | For |
+          | --- | --- |
+          | \`janus-scan_${VERSION}_universal.dmg\` | macOS (Apple Silicon and Intel). Not signed: open it once, then **System Settings → Privacy & Security → Open Anyway**. |
+          | \`janus-scan_${VERSION}_amd64.deb\` | Ubuntu 24.04+, Linux Mint 22+, Linux Lite 7+: \`sudo apt install ./janus-scan_${VERSION}_amd64.deb\` |
+          | \`janus-scan-${VERSION}-1-x86_64.pkg.tar.zst\` | CachyOS and Arch: \`sudo pacman -U janus-scan-${VERSION}-1-x86_64.pkg.tar.zst\` |
+          | \`janus-scan_${VERSION}_x86_64.AppImage\` | Other 64-bit Linux |
+          | \`janus-scan-server_${VERSION}.tar.gz\` | Janus Scan Server with Docker Compose or Kubernetes (Helm). Image: \`${image}\`; add Brother's driver with \`driver.Dockerfile\`. |
+          | \`janus-scan-lxc_${VERSION}.tar.gz\` | Janus Scan Server in an LXC container (Proxmox) |
+          EOF
+          gh release create "$GITHUB_REF_NAME" dist/* --draft --title "Janus Scan ${VERSION}" --notes-file notes.md

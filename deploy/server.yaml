@@ -1,0 +1,11 @@
+# Janus Scan Server config: the folders the web page can save to. The page
+# shows only the names; paths are inside the container (see the volumes in
+# docker-compose.yml). "This device" (download) is always offered too.
+destinations:
+  - name: Scans
+    path: /nas/scans
+  # - name: Receipts
+  #   path: /nas/receipts
+  #   name_template: "Receipts {date} {n}"   # {date}, {time}, {n}
+  # - name: Taxes 2026
+  #   path: /nas/taxes

@@ -1,0 +1,117 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ include "janus-scan.fullname" . }}
+  labels:
+    {{- include "janus-scan.labels" . | nindent 4 }}
+spec:
+  # One scanner, one server: the lock and the document are in memory, and a
+  # rolling update would briefly run two.
+  replicas: 1
+  strategy:
+    type: Recreate
+  selector:
+    matchLabels:
+      {{- include "janus-scan.selector" . | nindent 6 }}
+  template:
+    metadata:
+      labels:
+        {{- include "janus-scan.selector" . | nindent 8 }}
+      annotations:
+        # Restart when the destinations change.
+        checksum/config: {{ include "janus-scan.config" . | sha256sum }}
+        {{- with .Values.podAnnotations }}
+        {{- toYaml . | nindent 8 }}
+        {{- end }}
+    spec:
+      {{- with .Values.imagePullSecrets }}
+      imagePullSecrets:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      securityContext:
+        runAsUser: 1000
+        runAsGroup: 1000
+        runAsNonRoot: true
+        fsGroup: 1000
+      # Shutdown takes a second; more than enough.
+      terminationGracePeriodSeconds: 15
+      containers:
+        - name: server
+          image: "{{ .Values.image.repository }}:{{ .Values.image.tag }}"
+          imagePullPolicy: {{ .Values.image.pullPolicy }}
+          env:
+            - name: SCANNER_IP
+              value: {{ required "scanner.ip is required: the scanner's IP address" .Values.scanner.ip | quote }}
+            - name: SCANNER_NAME
+              value: {{ .Values.scanner.name | quote }}
+            - name: SCANNER_MODEL
+              value: {{ .Values.scanner.model | quote }}
+            - name: TZ
+              value: {{ .Values.timezone | quote }}
+            - name: IDLE_TIMEOUT_MINUTES
+              value: {{ .Values.idleTimeoutMinutes | quote }}
+          ports:
+            - name: http
+              containerPort: 8080
+          readinessProbe:
+            httpGet:
+              path: /api/pages
+              port: http
+            periodSeconds: 10
+          livenessProbe:
+            httpGet:
+              path: /api/pages
+              port: http
+            periodSeconds: 30
+            failureThreshold: 4
+          securityContext:
+            allowPrivilegeEscalation: false
+            capabilities:
+              drop: [ALL]
+          resources:
+            {{- toYaml .Values.resources | nindent 12 }}
+          volumeMounts:
+            - name: config
+              mountPath: /etc/janus-scan
+              readOnly: true
+            - name: scratch
+              mountPath: /tmp
+            {{- range $i, $d := .Values.destinations }}
+            - name: dest-{{ $i }}
+              mountPath: /nas/{{ $i }}
+              {{- with $d.subPath }}
+              subPath: {{ . | quote }}
+              {{- end }}
+            {{- end }}
+      volumes:
+        - name: config
+          configMap:
+            name: {{ include "janus-scan.fullname" . }}
+        - name: scratch
+          emptyDir:
+            sizeLimit: {{ .Values.scratchSizeLimit }}
+        {{- range $i, $d := .Values.destinations }}
+        - name: dest-{{ $i }}
+          {{- if $d.nfs }}
+          nfs:
+            server: {{ required (printf "destination %q: nfs.server is required" $d.name) $d.nfs.server | quote }}
+            path: {{ required (printf "destination %q: nfs.path is required" $d.name) $d.nfs.path | quote }}
+          {{- else if $d.existingClaim }}
+          persistentVolumeClaim:
+            claimName: {{ $d.existingClaim | quote }}
+          {{- else }}
+          {{- fail (printf "destination %q needs nfs or existingClaim" $d.name) }}
+          {{- end }}
+        {{- end }}
+      {{- with .Values.nodeSelector }}
+      nodeSelector:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with .Values.tolerations }}
+      tolerations:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with .Values.affinity }}
+      affinity:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}

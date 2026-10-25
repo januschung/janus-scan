@@ -1,0 +1,10 @@
+apiVersion: v2
+name: janus-scan
+description: Janus Scan Server, scanning from any browser on the network with the Brother ADS-1000W
+type: application
+version: 0.1.0
+appVersion: "0.1.0"
+home: https://github.com/januschung/janus-scan
+sources:
+  - https://github.com/januschung/janus-scan
+keywords: [scanner, brother, ads-1000w, sane]

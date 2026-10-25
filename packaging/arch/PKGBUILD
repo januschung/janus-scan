@@ -1,0 +1,20 @@
+# Arch Linux / CachyOS package for Janus Scan, made from the .deb that
+# scripts/package-linux.sh builds: the same app, packaged for pacman.
+pkgname=janus-scan
+pkgver=${JANUS_VERSION:-0.1.0}
+pkgrel=1
+pkgdesc="Scan documents with the Brother ADS-1000W"
+arch=('x86_64')
+url="https://github.com/januschung/janus-scan"
+license=('MIT')
+depends=('webkit2gtk-4.1' 'gtk3' 'sane')
+optdepends=("brscan4: Brother's scanner driver (AUR)")
+source=("janus-scan_${pkgver}_amd64.deb" "LICENSE")
+noextract=("janus-scan_${pkgver}_amd64.deb")
+sha256sums=('SKIP' 'SKIP')
+options=('!strip' '!debug')
+
+package() {
+    bsdtar -xOf "janus-scan_${pkgver}_amd64.deb" 'data.tar.*' | bsdtar -xf - -C "$pkgdir"
+    install -Dm644 LICENSE "$pkgdir/usr/share/licenses/$pkgname/LICENSE"
+}

@@ -1,0 +1,40 @@
+[workspace]
+resolver = "3"
+members = ["crates/*", "app/src-tauri"]
+default-members = ["crates/*"]
+
+[workspace.package]
+version = "0.1.0"
+edition = "2024"
+rust-version = "1.85"
+license = "MIT"
+authors = ["Janus Chung"]
+repository = "https://github.com/januschung/janus-scan"
+homepage = "https://github.com/januschung/janus-scan"
+# An app, not a library: nothing here goes to crates.io.
+publish = false
+
+[workspace.dependencies]
+scan-core = { path = "crates/scan-core" }
+backend-ica = { path = "crates/backend-ica" }
+backend-sane = { path = "crates/backend-sane" }
+imaging = { path = "crates/imaging" }
+export = { path = "crates/export" }
+document = { path = "crates/document" }
+anyhow = "1"
+thiserror = "2"
+image = { version = "0.25", default-features = false, features = ["jpeg", "png", "tiff"] }
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"
+clap = { version = "4", features = ["derive"] }
+
+[profile.release]
+codegen-units = 1
+lto = true
+opt-level = 3
+panic = "abort"
+strip = true
+
+# Image work is unbearably slow unoptimized; keep dev builds usable.
+[profile.dev.package."*"]
+opt-level = 3

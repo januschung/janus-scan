@@ -1,0 +1,75 @@
+# Janus Scan Server. Exactly one replica: the scanner lock and the document
+# being scanned live in the server's memory.
+
+image:
+  # Your image with Brother's driver added (driver.Dockerfile, see the README).
+  # It contains Brother's driver: push it to a private registry only.
+  repository: registry.example.lan/janus-scan-server
+  tag: latest
+  pullPolicy: IfNotPresent
+imagePullSecrets: []
+  # - name: my-registry
+
+scanner:
+  # The scanner's IP address (required). Reserve it in the router so it
+  # doesn't change.
+  ip: ""
+  name: ADS1000W
+  model: ADS-1000W
+
+# Time zone for {date} and {time} in file names.
+timezone: UTC
+
+# Unsaved pages are deleted after this long without activity (0: never).
+idleTimeoutMinutes: 60
+
+# Folders the web page can save to, besides "This device". The page shows
+# only the names. Each needs either an NFS share or an existing claim.
+destinations: []
+  # - name: Receipts
+  #   nameTemplate: "Receipts {date} {n}"   # optional; {date}, {time}, {n}
+  #   nfs:
+  #     server: nas.lan
+  #     path: /volume1/scans/receipts
+  # - name: Taxes 2026
+  #   existingClaim: taxes-smb              # any PVC, e.g. from csi-driver-smb
+  #   subPath: ""                           # optional folder inside the claim
+
+service:
+  type: ClusterIP
+  port: 8080
+
+ingress:
+  enabled: false
+  className: ""
+  host: janus-scan.lan
+  # Live page updates are Server-Sent Events; proxies must not buffer them.
+  # ingress-nginx needs the two annotations below; Traefik works as is.
+  annotations: {}
+    # nginx.ingress.kubernetes.io/proxy-buffering: "off"
+    # nginx.ingress.kubernetes.io/proxy-read-timeout: "3600"
+  # HTTPS is what lets Android install the page as an app.
+  tls: []
+    # - secretName: janus-scan-tls
+    #   hosts: [janus-scan.lan]
+
+# Brother's driver is x86-64 only.
+nodeSelector:
+  kubernetes.io/arch: amd64
+tolerations: []
+affinity: {}
+
+# Pages are held in memory while a document is saved, about 25 MB each in
+# color at 300 dpi.
+resources:
+  requests:
+    cpu: 100m
+    memory: 128Mi
+  limits:
+    memory: 2Gi
+
+# Scanned pages in progress, on the node's disk; deleted on New, after
+# idleTimeoutMinutes without activity, or at shutdown.
+scratchSizeLimit: 2Gi
+
+podAnnotations: {}

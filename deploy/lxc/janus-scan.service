@@ -1,0 +1,29 @@
+[Unit]
+Description=Janus Scan Server
+Wants=network-online.target
+After=network-online.target
+
+[Service]
+User=janus-scan
+Group=janus-scan
+# SCANNER_IP, TZ, PORT and other settings.
+EnvironmentFile=/etc/default/janus-scan
+Environment=WEB_DIR=/usr/share/janus-scan/web
+Environment=JANUS_CONFIG=/etc/janus-scan/server.yaml
+# Brother's backend in place of libsane (not installed).
+Environment=JANUS_SCAN_LIBSANE=/usr/lib64/sane/libsane-brother4.so.1
+# Registering writes Brother's config, so it runs as root ("+").
+ExecStartPre=+/usr/local/lib/janus-scan/register-scanner
+ExecStart=/usr/local/bin/janus-scan-server
+Restart=on-failure
+RestartSec=5
+# Stopping takes about a second; scanned pages are deleted on the way out.
+TimeoutStopSec=15
+# Scanned pages in progress live in a private /tmp.
+PrivateTmp=yes
+NoNewPrivileges=yes
+ProtectSystem=full
+ProtectHome=yes
+
+[Install]
+WantedBy=multi-user.target

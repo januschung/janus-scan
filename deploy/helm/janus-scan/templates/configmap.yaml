@@ -1,0 +1,9 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: {{ include "janus-scan.fullname" . }}
+  labels:
+    {{- include "janus-scan.labels" . | nindent 4 }}
+data:
+  server.yaml: |
+    {{- include "janus-scan.config" . | nindent 4 }}

@@ -1,0 +1,24 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1024 1024" width="1024" height="1024">
+  <!-- Janus Scan app icon: two half-heads back to back (Janus), front and back of the page.
+       Tile follows the macOS icon grid: 824 px rounded square centred on a 1024 canvas. -->
+  <defs>
+    <linearGradient id="tile" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#4a6ff5"/>
+      <stop offset="1" stop-color="#3355e6"/>
+    </linearGradient>
+  </defs>
+  <rect x="100" y="100" width="824" height="824" rx="185" fill="url(#tile)"/>
+  <!-- Mark drawn on a 100-unit grid, 76% of the tile, centred. -->
+  <g transform="translate(198.9 198.9) scale(6.262)">
+    <g fill="#ffffff" stroke="#ffffff" stroke-width="1.2" stroke-linejoin="round">
+      <path d="M46.5 18 A32 32 0 0 0 46.5 82 Z"/>
+      <path d="M17.2 44.5 L8.5 55.5 L18.6 58.6 Z"/>
+    </g>
+    <g fill="#c3cffd" stroke="#c3cffd" stroke-width="1.2" stroke-linejoin="round">
+      <path d="M53.5 18 A32 32 0 0 1 53.5 82 Z"/>
+      <path d="M82.8 44.5 L91.5 55.5 L81.4 58.6 Z"/>
+    </g>
+    <circle cx="24.5" cy="40" r="3.6" fill="#3f63ee"/>
+    <circle cx="75.5" cy="40" r="3.6" fill="#3f63ee"/>
+  </g>
+</svg>

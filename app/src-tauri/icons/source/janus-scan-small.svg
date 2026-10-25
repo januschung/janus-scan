@@ -1,0 +1,6 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32" width="32" height="32">
+  <!-- 16 and 32 px version: full-bleed tile, no eyes, bolder noses, edges on whole pixels. -->
+  <rect width="32" height="32" rx="7" fill="#3d63f0"/>
+  <path d="M15 5 A11 11 0 0 0 15 27 Z M5 14 L2 19 L6 20 Z" fill="#ffffff"/>
+  <path d="M17 5 A11 11 0 0 1 17 27 Z M27 14 L30 19 L26 20 Z" fill="#c3cffd"/>
+</svg>

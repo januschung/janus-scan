@@ -1,0 +1,40 @@
+{
+  "name": "janus-scan",
+  "private": true,
+  "version": "0.1.0",
+  "description": "Janus Scan: scanning app for the Brother ADS-1000W (desktop and web front end)",
+  "type": "module",
+  "scripts": {
+    "dev": "vite dev",
+    "build": "vite build",
+    "dev:web": "VITE_JANUS_WEB=1 vite dev",
+    "build:web": "VITE_JANUS_WEB=1 vite build",
+    "preview": "vite preview",
+    "prepare": "svelte-kit sync || echo ''",
+    "check": "svelte-kit sync && svelte-check --tsconfig ./tsconfig.json",
+    "check:watch": "svelte-kit sync && svelte-check --tsconfig ./tsconfig.json --watch",
+    "tauri": "tauri"
+  },
+  "license": "MIT",
+  "dependencies": {
+    "@tauri-apps/api": "^2",
+    "@tauri-apps/plugin-dialog": "^2.8.3",
+    "@tauri-apps/plugin-opener": "^2"
+  },
+  "devDependencies": {
+    "@sveltejs/adapter-static": "^3.0.10",
+    "@sveltejs/kit": "^2.65.1",
+    "@sveltejs/vite-plugin-svelte": "^7.1.2",
+    "@tauri-apps/cli": "^2",
+    "svelte": "^5.56.3",
+    "svelte-check": "^4.6.0",
+    "typescript": "~6.0.3",
+    "vite": "^8.0.16"
+  },
+  "homepage": "https://github.com/januschung/janus-scan",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/januschung/janus-scan.git"
+  },
+  "author": "Janus Chung"
+}

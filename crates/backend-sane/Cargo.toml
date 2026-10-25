@@ -1,0 +1,16 @@
+[package]
+name = "backend-sane"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+description = "Linux scanning for Janus Scan through SANE"
+authors.workspace = true
+repository.workspace = true
+homepage.workspace = true
+publish.workspace = true
+
+[dependencies]
+scan-core.workspace = true
+image.workspace = true
+libloading = "0.8"

@@ -1,0 +1,54 @@
+# Janus Scan Server with Docker Compose.
+#
+#   1. Put Brother's brscan4 .deb (64-bit, from support.brother.com) in this folder.
+#   2. SCANNER_IP=192.168.1.50 docker compose up -d --build
+#   3. Open http://<this computer>:8080 on a phone or computer.
+#
+# The build adds Brother's driver to the published image (driver.Dockerfile),
+# which takes a few seconds. To start from an image you built from source
+# (deploy/Dockerfile), set JANUS_SCAN_IMAGE to its name.
+# The version line is only for the older docker-compose 1.x.
+version: "2.2"
+services:
+  janus-scan:
+    build:
+      context: .
+      dockerfile: driver.Dockerfile
+      args:
+        BASE: ${JANUS_SCAN_IMAGE:-ghcr.io/januschung/janus-scan-server:latest}
+    # Contains Brother's driver: keep it on your own machines.
+    image: janus-scan-server-local
+    platform: linux/amd64
+    restart: unless-stopped
+    ports:
+      - "8080:8080"
+    environment:
+      # The scanner's IP address (required); the log says so when it's missing.
+      SCANNER_IP: ${SCANNER_IP}
+      # Time zone for {date} and {time} in file names, e.g. America/Los_Angeles.
+      TZ: ${TZ:-UTC}
+      # Unsaved pages are deleted after this long without activity (0: never).
+      IDLE_TIMEOUT_MINUTES: ${IDLE_TIMEOUT_MINUTES:-60}
+    volumes:
+      - ./server.yaml:/etc/janus-scan/server.yaml:ro
+      # Destinations from server.yaml. A local folder to start with; it must
+      # be writable by user 1000 (the container's user).
+      - ./scans:/nas/scans
+      # A NAS share instead: see the named volumes below.
+      # - receipts:/nas/receipts
+      # - taxes:/nas/taxes
+
+# NAS shares, mounted by Docker; the server only sees folders.
+# volumes:
+#   receipts:            # NFS
+#     driver: local
+#     driver_opts:
+#       type: nfs
+#       o: "addr=nas.local,rw,nfsvers=4"
+#       device: ":/volume1/scans/receipts"
+#   taxes:               # SMB / CIFS
+#     driver: local
+#     driver_opts:
+#       type: cifs
+#       o: "username=scanner,password=change-me,uid=1000,gid=1000"
+#       device: "//nas.local/scans/taxes"

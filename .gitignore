@@ -1,0 +1,26 @@
+# Build output
+target/
+node_modules/
+app/build/
+app/build-web/
+app/dist/
+app/src-tauri/gen/
+
+# Local deployment files: Brother's driver (never redistributed), your own
+# settings and scans, and generated bundles
+deploy/*.deb
+deploy/homelab/
+deploy/dist/
+deploy/bundle/
+scans/
+
+# Scans saved while testing
+*.pdf
+*.jpeg
+
+# Logs and reports
+*.log
+linux-check-report.txt
+
+# OS clutter
+.DS_Store

@@ -1,0 +1,21 @@
+[package]
+name = "backend-ica"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+description = "macOS scanning for Janus Scan through Apple's ImageCaptureCore"
+authors.workspace = true
+repository.workspace = true
+homepage.workspace = true
+publish.workspace = true
+
+[dependencies]
+scan-core.workspace = true
+
+[target.'cfg(target_os = "macos")'.dependencies]
+image.workspace = true
+objc2 = "0.6"
+objc2-foundation = "0.3"
+objc2-image-capture-core = "0.3"
+dispatch2 = "0.3"
