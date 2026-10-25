@@ -61,7 +61,7 @@ jobs:
           cp target/universal-apple-darwin/release/bundle/dmg/*.dmg "out/janus-scan_${VERSION}_universal.dmg"
       - uses: actions/upload-artifact@v4
         with:
-          name: macos
+          name: pkg-macos
           path: out/*
 
   linux:
@@ -100,7 +100,7 @@ jobs:
             -v "$PWD/LICENSE":/pkg-license/LICENSE:ro archlinux:latest sh /pkg/build.sh
       - uses: actions/upload-artifact@v4
         with:
-          name: linux
+          name: pkg-linux
           path: out/*
 
   server:
@@ -121,6 +121,9 @@ jobs:
         run: echo "name=ghcr.io/${GITHUB_REPOSITORY_OWNER,,}/janus-scan-server" >> "$GITHUB_OUTPUT"
       - name: Publish the server image (without Brother's driver)
         uses: docker/build-push-action@v6
+        env:
+          # No build-record artifact: the release job downloads artifacts.
+          DOCKER_BUILD_RECORD_UPLOAD: "false"
         with:
           context: .
           file: deploy/Dockerfile
@@ -151,7 +154,7 @@ jobs:
           tar -C lxc -czf "out/janus-scan-lxc_${VERSION}.tar.gz" .
       - uses: actions/upload-artifact@v4
         with:
-          name: server
+          name: pkg-server
           path: out/*.tar.gz
 
   release:
@@ -164,6 +167,9 @@ jobs:
     steps:
       - uses: actions/download-artifact@v4
         with:
+          # Only our packages: the Docker build also uploads a build record
+          # (*.dockerbuild) that can't be downloaded like a normal artifact.
+          pattern: pkg-*
           path: dist
           merge-multiple: true
       - name: Checksums
